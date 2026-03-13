@@ -346,13 +346,24 @@ def build_notebook() -> nbf.NotebookNode:
                 df.loc[df["group"] == "control", "revenue"],
                 equal_var=False,
             )
+            revenue_diff = revenue_summary.loc["treatment", "mean_revenue_per_user"] - revenue_summary.loc["control", "mean_revenue_per_user"]
+            revenue_var_t = df.loc[df["group"] == "treatment", "revenue"].var(ddof=1)
+            revenue_var_c = df.loc[df["group"] == "control", "revenue"].var(ddof=1)
+            revenue_n_t = revenue_summary.loc["treatment", "users"]
+            revenue_n_c = revenue_summary.loc["control", "users"]
+            revenue_se = np.sqrt((revenue_var_t / revenue_n_t) + (revenue_var_c / revenue_n_c))
+            welch_df = ((revenue_var_t / revenue_n_t) + (revenue_var_c / revenue_n_c)) ** 2 / (
+                ((revenue_var_t / revenue_n_t) ** 2 / (revenue_n_t - 1))
+                + ((revenue_var_c / revenue_n_c) ** 2 / (revenue_n_c - 1))
+            )
+            revenue_margin = stats.t.ppf(0.975, welch_df) * revenue_se
 
             test_results = pd.DataFrame(
                 {
                     "metric": ["Conversion rate", "Revenue per user"],
-                    "estimate": [overall_diff * 100, revenue_summary.loc["treatment", "mean_revenue_per_user"] - revenue_summary.loc["control", "mean_revenue_per_user"]],
-                    "ci_low": [overall_ci_low * 100, np.nan],
-                    "ci_high": [overall_ci_high * 100, np.nan],
+                    "estimate": [overall_diff * 100, revenue_diff],
+                    "ci_low": [overall_ci_low * 100, revenue_diff - revenue_margin],
+                    "ci_high": [overall_ci_high * 100, revenue_diff + revenue_margin],
                     "test_stat": [overall_stat, revenue_test.statistic],
                     "p_value": [overall_p, revenue_test.pvalue],
                 }
@@ -713,7 +724,7 @@ def build_notebook() -> nbf.NotebookNode:
                 Markdown(
                     f"This is the core behavior story. The device-adjusted lift starts at **{week1_effect:.2f} pp** in week 1, "
                     "turns negative in the middle of the run, and only recovers to a small effect by the final week "
-                    f"(**{week4_effect:.2f} pp**). The important point is not a perfect novelty story; it is that the effect does not settle into a clean, durable win."
+                    f"(**{week4_effect:.2f} pp**). The mid-run negatives are best read as instability in smaller later-week slices, not as a precise estimate of harm. The important point is that the effect never settles into a clean, durable win."
                 )
             )
             """
@@ -820,6 +831,8 @@ def build_notebook() -> nbf.NotebookNode:
 
             **Practical lens:** Even the naive topline lift (**{overall_diff * 100:.2f} pp**) is modest relative to the size of effect this test was powered to detect reliably (**~{mde_pp:.2f} pp**). This was not an obviously strong product win even before the audit concerns.
 
+            **Business risk:** Shipping on evidence like this does not just risk a neutral launch. It also burns trust in experimentation by teaching the team that a noisy, compromised readout is good enough.
+
             **Recommendation:** Fix the assignment bug, rerun the test for at least four weeks, and evaluate the redesign only after the effect trajectory has settled rather than relying on the early spike.
             '''
 
@@ -835,16 +848,14 @@ def build_notebook() -> nbf.NotebookNode:
         ),
         code(
             """
-            forest_data = subgroup_effects.iloc[::-1]
             device_panel = conversion_by_device.assign(conversion_rate=lambda frame: frame["conversion_rate"] * 100)
 
             fig = make_subplots(
-                rows=3,
+                rows=2,
                 cols=1,
                 subplot_titles=(
                     "Device-adjusted treatment effect by week",
                     "Conversion rate by device",
-                    "Subgroup treatment effects",
                 ),
                 vertical_spacing=0.12,
             )
@@ -852,17 +863,13 @@ def build_notebook() -> nbf.NotebookNode:
             fig.add_trace(go.Scatter(x=weekly_effects["week"], y=weekly_effects["adjusted_effect_pp"], mode="lines+markers", line={"color": TREATMENT_COLOR, "width": 3}, name="Weekly effect"), row=1, col=1)
             fig.add_trace(go.Bar(x=device_panel[device_panel["group"] == "control"]["device"], y=device_panel[device_panel["group"] == "control"]["conversion_rate"], marker_color=CONTROL_COLOR, name="Control"), row=2, col=1)
             fig.add_trace(go.Bar(x=device_panel[device_panel["group"] == "treatment"]["device"], y=device_panel[device_panel["group"] == "treatment"]["conversion_rate"], marker_color=TREATMENT_COLOR, name="Treatment"), row=2, col=1)
-            fig.add_trace(go.Scatter(x=forest_data["effect_pp"], y=forest_data["segment"], mode="markers", marker={"color": TREATMENT_COLOR, "size": 9}, error_x={"type": "data", "symmetric": False, "array": forest_data["ci_high_pp"] - forest_data["effect_pp"], "arrayminus": forest_data["effect_pp"] - forest_data["ci_low_pp"]}, name="Subgroup lift"), row=3, col=1)
 
             fig.add_hline(y=0, line_dash="dash", line_color="gray", row=1, col=1)
-            fig.add_vline(x=0, line_dash="dash", line_color="gray", row=3, col=1)
-            fig.update_layout(title="Experiment Summary: Why the Topline Lied", height=1100, barmode="group")
+            fig.update_layout(title="Experiment Summary: Why the Topline Lied", height=850, barmode="group")
             fig.update_xaxes(title_text="Enrollment week", row=1, col=1)
             fig.update_yaxes(title_text="Lift (pp)", row=1, col=1, showgrid=False)
             fig.update_xaxes(title_text="Device", row=2, col=1)
             fig.update_yaxes(title_text="Conversion rate (%)", row=2, col=1, showgrid=False)
-            fig.update_xaxes(title_text="Lift (pp)", row=3, col=1)
-            fig.update_yaxes(title_text="", row=3, col=1, showgrid=False)
             fig.show()
             """
         ),
@@ -894,7 +901,7 @@ def build_notebook() -> nbf.NotebookNode:
                 Markdown(
                     f"The simulator biased **{reveal['segment']['user_type']} {reveal['segment']['device']}** users into treatment at **{reveal['treatment_probability']:.0%}** instead of 50%, while all other segments stayed at 50/50. "
                     f"I also delayed that segment's enrollment by **{ground_truth['biased_segment_enrollment_shift_days']} days** on average and added a short treatment pulse early in the run. "
-                    "That combination is what creates the SRM, the misleading topline, and the unstable peeking story the audit recovered."
+                    "Those extra ingredients are what show up later as the unstable peeking path in Check 3 and the uneven week-by-week effect trajectory in Check 4."
                 )
             )
             """

@@ -12,13 +12,6 @@ Bottom line: the checkout redesign looks like a win at the topline, but the expe
 - Recommendation: this test result is not reliable enough to justify shipping the redesign.
 - The notebook contains the full walkthrough, including the topline read, the audit checks, and the final decision.
 
-## Key findings
-
-- The topline result looks significant, but the randomization is compromised by a sample ratio mismatch (SRM).
-- Treatment inherited more returning desktop users, creating a Simpson's paradox effect that inflates pooled conversion.
-- The device-adjusted treatment effect spikes early, weakens sharply through the middle of the run, and ends far below the topline lift.
-- Subgroup point estimates are easy to over-read; once confidence intervals are shown, the slices are too noisy to support strong product decisions.
-
 ## Methodology
 
 - Simulated user-level experiment data with known ground truth and a seeded randomization bug
@@ -26,7 +19,7 @@ Bottom line: the checkout redesign looks like a win at the topline, but the expe
 - SRM detection with group-level and segment-level assignment audits
 - Stratified analysis to diagnose Simpson's paradox and device-mix inflation
 - Sequential read simulation to illustrate the risk of early peeking
-- Week-by-week effect decomposition to isolate novelty decay
+- Week-by-week effect decomposition to evaluate the effect trajectory over time
 - Subgroup effect estimation, confidence intervals, and interaction testing
 
 ## How to run
@@ -34,8 +27,8 @@ Bottom line: the checkout redesign looks like a win at the topline, but the expe
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python src/simulate.py
-.venv/bin/python src/build_notebook.py
+.venv/bin/python src/simulate.py      # generate the simulated experiment data
+.venv/bin/python src/build_notebook.py  # rebuild the notebook from the source template
 .venv/bin/jupyter lab notebooks/analysis.ipynb
 ```
 
