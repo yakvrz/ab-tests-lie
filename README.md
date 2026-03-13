@@ -6,12 +6,11 @@ Bottom line: the checkout redesign looks like a win at the topline, but the expe
 
 ## At a glance
 
-- Naive topline: treatment conversion is higher by **0.64 percentage points** (`p = 0.028`), and revenue per user is also significant (`p = 0.016`).
-- After adjusting for device mix, the lift shrinks to about **0.42 percentage points**.
-- Even the naive lift is below the notebook's pre-test minimum detectable effect, meaning the optimistic read is not a practically strong win.
-- Treatment gets materially more desktop traffic (`36.33%` vs `33.67%` in control), driven by returning desktop users being over-assigned.
-- The cumulative p-value first drops below `0.05` on day `3`, rises back above it on day `19`, then ends significant again, showing how unstable early reads can be.
-- Both `new` and `returning` user slices are non-significant in the tuned run, which blocks the usual overconfident subgroup story.
+- Scenario: CartCo tests a redesigned checkout flow against the existing version on 50,000 users.
+- First impression: the redesign appears to win. Conversion is higher by **0.64 percentage points** (`p = 0.028`), and revenue per user is also higher (`p = 0.016`).
+- Deeper audit: the result is inflated by a randomization problem, distorted by traffic mix, and unstable over time.
+- Recommendation: this test result is not reliable enough to justify shipping the redesign.
+- The notebook contains the full walkthrough, including the topline read, the audit checks, and the final decision.
 
 ## Preview
 
