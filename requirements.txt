@@ -4,4 +4,3 @@ scipy>=1.10
 statsmodels>=0.14
 plotly>=5.15
 jupyter>=1.0
-kaleido>=1.0

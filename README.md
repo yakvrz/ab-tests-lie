@@ -12,12 +12,6 @@ Bottom line: the checkout redesign looks like a win at the topline, but the expe
 - Recommendation: this test result is not reliable enough to justify shipping the redesign.
 - The notebook contains the full walkthrough, including the topline read, the audit checks, and the final decision.
 
-## Preview
-
-![Experiment summary](reports/experiment_summary.png)
-
-A standalone summary figure is available at [reports/experiment_summary.html](/home/yakvrz/Projects/ab-tests-lie/reports/experiment_summary.html).
-
 ## Key findings
 
 - The topline result looks significant, but the randomization is compromised by a sample ratio mismatch (SRM).
@@ -42,7 +36,6 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python src/simulate.py
 .venv/bin/python src/build_notebook.py
-.venv/bin/python src/build_summary_figure.py
 .venv/bin/jupyter lab notebooks/analysis.ipynb
 ```
 
@@ -63,11 +56,7 @@ ab-tests-lie/
 │   └── ground_truth.json
 ├── notebooks/
 │   └── analysis.ipynb
-├── reports/
-│   └── experiment_summary.html
-│   └── experiment_summary.png
 └── src/
-    ├── build_summary_figure.py
     ├── build_notebook.py
     └── simulate.py
 ```
