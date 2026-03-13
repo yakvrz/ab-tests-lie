@@ -28,7 +28,7 @@ def build_notebook() -> nbf.NotebookNode:
             """
             # When A/B Tests Lie
 
-            **CartCo checkout redesign case study**
+            **CartCo experiment review**
 
             I simulated a realistic 4-week experiment where the topline says "ship it" and the audit says "not so fast." The goal of this notebook is to show the workflow I use before I trust any experiment readout: size the test, inspect the topline, then pressure-test the randomization, composition, timing, and subgroup story before making a product recommendation.
             """
