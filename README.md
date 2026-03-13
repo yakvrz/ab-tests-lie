@@ -1,6 +1,6 @@
 # When A/B Tests Lie: A Case Study in Experiment Validation
 
-This repository is about a simple idea: an A/B test can be statistically significant and still point a team toward the wrong product decision. The case study uses a deliberately flawed e-commerce checkout experiment to show how that happens in practice, and how a careful audit can separate a real improvement from a misleading win. The emphasis is on the judgment that makes experiment results trustworthy: power analysis, validation checks, causal skepticism, and clear stakeholder communication.
+This repository is about a simple idea: an A/B test can be statistically significant and still point a team toward the wrong product decision. The case study uses a simulated e-commerce checkout experiment designed as a composite of realistic experimentation failure modes, showing how a careful audit can separate a real improvement from a misleading win. The emphasis is on the judgment that makes experiment results trustworthy: power analysis, validation checks, causal skepticism, and clear stakeholder communication.
 
 Bottom line: the checkout redesign looks like a win at the topline, but the experiment is compromised and should not be used to justify shipping.
 
