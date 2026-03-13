@@ -1,0 +1,80 @@
+{
+  "seed": 42,
+  "n_users": 50000,
+  "experiment_days": 28,
+  "signup_lookback_days": 730,
+  "device_probabilities": {
+    "mobile": 0.55,
+    "desktop": 0.35,
+    "tablet": 0.1
+  },
+  "user_type_given_device_returning_probability": {
+    "mobile": 0.3,
+    "desktop": 0.55,
+    "tablet": 0.42
+  },
+  "control_conversion_rates": {
+    "mobile": 0.08,
+    "desktop": 0.18,
+    "tablet": 0.12
+  },
+  "treatment_conversion_rates": {
+    "week_1": {
+      "mobile": 0.095,
+      "desktop": 0.19,
+      "tablet": 0.135
+    },
+    "week_2": {
+      "mobile": 0.088,
+      "desktop": 0.183,
+      "tablet": 0.125
+    },
+    "week_3": {
+      "mobile": 0.083,
+      "desktop": 0.178,
+      "tablet": 0.121
+    },
+    "week_4": {
+      "mobile": 0.081,
+      "desktop": 0.175,
+      "tablet": 0.119
+    }
+  },
+  "assignment_mechanism": {
+    "segment": {
+      "device": "desktop",
+      "user_type": "returning"
+    },
+    "treatment_probability": 0.55,
+    "all_other_segments_probability": 0.5
+  },
+  "biased_segment_enrollment_shift_days": 8,
+  "revenue_distribution": {
+    "distribution": "lognormal",
+    "mean": 3.5,
+    "sigma": 0.8
+  },
+  "revenue_seed": 5,
+  "treatment_week_adjustments": {
+    "week_1": 0.00172498,
+    "week_2": -0.00018881,
+    "week_3": -0.00138775,
+    "week_4": -0.0007771
+  },
+  "early_novelty_pulse": {
+    "end_day": 4,
+    "lift": 0.009
+  },
+  "late_rebound_pulse": {
+    "start_day": 23,
+    "lift": 0.0035
+  },
+  "treatment_user_type_offsets": {
+    "new": -0.00029273,
+    "returning": -0.005
+  },
+  "visual_style": {
+    "control": "#636EFA",
+    "treatment": "#EF553B"
+  }
+}
