@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from statsmodels.stats.proportion import proportions_ztest
 
 
@@ -68,102 +67,153 @@ def subgroup_effects(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def overall_adjusted_effect(df: pd.DataFrame) -> float:
+    """Compute the overall device-adjusted treatment effect in percentage points."""
+
+    weights = df.loc[df["group"] == "control", "device"].value_counts(normalize=True)
+    rates = df.groupby(["device", "group"])["converted"].mean().unstack()
+    return float(((rates["treatment"] - rates["control"]) * weights).sum() * 100)
+
+
+def peeking_days(df: pd.DataFrame) -> tuple[int, int]:
+    """Return the first significant day and the first later reversion above 0.05."""
+
+    daily_checks = []
+    for day in range(3, 29):
+        subset = df[df["day_enrolled"] <= day]
+        counts = subset.groupby("group")["converted"].sum().reindex(["control", "treatment"])
+        nobs = subset.groupby("group").size().reindex(["control", "treatment"])
+        p_value = float(proportions_ztest(counts, nobs)[1])
+        daily_checks.append((day, p_value))
+
+    first_sig_day = next(day for day, p_value in daily_checks if p_value < 0.05)
+    reversion_day = next(day for day, p_value in daily_checks if day > first_sig_day and p_value > 0.05)
+    return first_sig_day, reversion_day
+
+
 def build_figure(df: pd.DataFrame) -> go.Figure:
-    """Create the stakeholder-ready summary figure."""
+    """Create a simplified summary figure that reads well in the README."""
 
     weekly = adjusted_weekly_effects(df)
-    conversion_by_device = (
-        df.groupby(["device", "group"])["converted"]
-        .mean()
-        .mul(100)
-        .reset_index(name="conversion_rate_pct")
-    )
-    forest = subgroup_effects(df).iloc[::-1]
-
-    overall = df.groupby("group")["converted"].mean().mul(100)
     counts = df.groupby("group")["converted"].sum().reindex(["control", "treatment"])
     nobs = df.groupby("group").size().reindex(["control", "treatment"])
     overall_p = float(proportions_ztest(counts, nobs)[1])
+    topline_lift = float((counts["treatment"] / nobs["treatment"] - counts["control"] / nobs["control"]) * 100)
+    adjusted_lift = overall_adjusted_effect(df)
+    treatment_share = float(nobs["treatment"] / nobs.sum() * 100)
+    control_share = float(nobs["control"] / nobs.sum() * 100)
+    first_sig_day, reversion_day = peeking_days(df)
 
-    fig = make_subplots(
-        rows=3,
-        cols=1,
-        subplot_titles=(
-            "Device-adjusted treatment effect by week",
-            "Conversion rate by device",
-            "Subgroup treatment effects",
-        ),
-        vertical_spacing=0.12,
-    )
+    new_users = df[df["user_type"] == "new"]
+    new_counts = new_users.groupby("group")["converted"].sum().reindex(["control", "treatment"])
+    new_nobs = new_users.groupby("group").size().reindex(["control", "treatment"])
+    new_p = float(proportions_ztest(new_counts, new_nobs)[1])
 
+    returning_users = df[df["user_type"] == "returning"]
+    returning_counts = returning_users.groupby("group")["converted"].sum().reindex(["control", "treatment"])
+    returning_nobs = returning_users.groupby("group").size().reindex(["control", "treatment"])
+    returning_p = float(proportions_ztest(returning_counts, returning_nobs)[1])
+
+    fig = go.Figure()
     fig.add_trace(
         go.Scatter(
             x=weekly["week"],
             y=weekly["adjusted_effect_pp"],
             mode="lines+markers",
-            line={"color": TREATMENT_COLOR, "width": 3},
-            name="Adjusted lift",
+            line={"color": TREATMENT_COLOR, "width": 4},
+            marker={"size": 10},
         ),
-        row=1,
-        col=1,
     )
 
-    fig.add_trace(
-        go.Bar(
-            x=conversion_by_device[conversion_by_device["group"] == "control"]["device"],
-            y=conversion_by_device[conversion_by_device["group"] == "control"]["conversion_rate_pct"],
-            marker_color=CONTROL_COLOR,
-            name="Control",
-        ),
-        row=2,
-        col=1,
+    fig.add_hline(y=0, line_dash="dash", line_color="gray")
+    fig.add_annotation(
+        x=0.00,
+        y=1.10,
+        xref="paper",
+        yref="paper",
+        text=f"<b>Naive topline lift</b><br><span style='font-size:28px'>{topline_lift:.2f} pp</span>",
+        showarrow=False,
+        align="left",
+        bgcolor="rgba(255, 255, 255, 0.92)",
+        bordercolor=CONTROL_COLOR,
+        borderwidth=1,
+        font={"size": 16},
     )
-    fig.add_trace(
-        go.Bar(
-            x=conversion_by_device[conversion_by_device["group"] == "treatment"]["device"],
-            y=conversion_by_device[conversion_by_device["group"] == "treatment"]["conversion_rate_pct"],
-            marker_color=TREATMENT_COLOR,
-            name="Treatment",
-        ),
-        row=2,
-        col=1,
+    fig.add_annotation(
+        x=0.50,
+        y=1.10,
+        xref="paper",
+        yref="paper",
+        text=f"<b>After device adjustment</b><br><span style='font-size:28px'>{adjusted_lift:.2f} pp</span>",
+        showarrow=False,
+        align="center",
+        bgcolor="rgba(255, 255, 255, 0.92)",
+        bordercolor=TREATMENT_COLOR,
+        borderwidth=1,
+        font={"size": 16},
     )
-
-    fig.add_trace(
-        go.Scatter(
-            x=forest["effect_pp"],
-            y=forest["segment"],
-            mode="markers",
-            marker={"color": TREATMENT_COLOR, "size": 9},
-            error_x={
-                "type": "data",
-                "symmetric": False,
-                "array": forest["ci_high_pp"] - forest["effect_pp"],
-                "arrayminus": forest["effect_pp"] - forest["ci_low_pp"],
-            },
-            name="Point estimate",
+    fig.add_annotation(
+        x=1.00,
+        y=1.10,
+        xref="paper",
+        yref="paper",
+        text=(
+            "<b>Observed split</b><br>"
+            f"<span style='font-size:28px'>{treatment_share:.1f}% / {control_share:.1f}%</span>"
         ),
-        row=3,
-        col=1,
+        showarrow=False,
+        align="right",
+        bgcolor="rgba(255, 255, 255, 0.92)",
+        bordercolor="#A0A0A0",
+        borderwidth=1,
+        font={"size": 16},
     )
-
-    fig.add_hline(y=0, line_dash="dash", line_color="gray", row=1, col=1)
-    fig.add_hline(y=float(overall["control"]), line_color=CONTROL_COLOR, line_dash="dash", row=2, col=1)
-    fig.add_hline(y=float(overall["treatment"]), line_color=TREATMENT_COLOR, line_dash="dash", row=2, col=1)
-    fig.add_vline(x=0, line_dash="dash", line_color="gray", row=3, col=1)
+    fig.add_annotation(
+        x=0.00,
+        y=0.98,
+        xref="paper",
+        yref="paper",
+        text=(
+            f"<b>Peeking flips:</b> p < 0.05 by day {first_sig_day}, "
+            f"back above 0.05 on day {reversion_day}"
+        ),
+        showarrow=False,
+        align="left",
+        bgcolor="rgba(99, 110, 250, 0.10)",
+        bordercolor=CONTROL_COLOR,
+        borderwidth=1,
+        font={"size": 15},
+    )
+    fig.add_annotation(
+        x=1.00,
+        y=0.98,
+        xref="paper",
+        yref="paper",
+        text=(
+            f"<b>Subgroups stay noisy:</b> new users p = {new_p:.3f}, "
+            f"returning users p = {returning_p:.3f}"
+        ),
+        showarrow=False,
+        align="right",
+        bgcolor="rgba(239, 85, 59, 0.10)",
+        bordercolor=TREATMENT_COLOR,
+        borderwidth=1,
+        font={"size": 15},
+    )
 
     fig.update_layout(
-        title=f"Experiment Summary: Why the Topline Lied (overall conversion p = {overall_p:.3f})",
-        height=1100,
-        barmode="group",
+        title=(
+            "Why the Topline Lied"
+            f"<br><sup>The checkout redesign looks positive at first, but the adjusted effect is smaller and unstable "
+            f"(overall conversion p = {overall_p:.3f}).</sup>"
+        ),
+        height=760,
         template="plotly_white",
+        margin={"t": 220, "r": 60, "b": 60, "l": 60},
+        showlegend=False,
     )
-    fig.update_xaxes(title_text="Enrollment week", row=1, col=1)
-    fig.update_yaxes(title_text="Lift (pp)", row=1, col=1, showgrid=False)
-    fig.update_xaxes(title_text="Device", row=2, col=1)
-    fig.update_yaxes(title_text="Conversion rate (%)", row=2, col=1, showgrid=False)
-    fig.update_xaxes(title_text="Lift (pp)", row=3, col=1)
-    fig.update_yaxes(title_text="", row=3, col=1, showgrid=False)
+    fig.update_xaxes(title_text="Enrollment week", tickfont={"size": 15}, title_font={"size": 16})
+    fig.update_yaxes(title_text="Adjusted lift (pp)", showgrid=False, tickfont={"size": 15}, title_font={"size": 16})
     return fig
 
 
@@ -177,7 +227,7 @@ def main() -> None:
     df = load_data(project_root)
     fig = build_figure(df)
     fig.write_html(reports_dir / "experiment_summary.html", include_plotlyjs="cdn")
-    fig.write_image(reports_dir / "experiment_summary.png", width=1400, height=1100, scale=2)
+    fig.write_image(reports_dir / "experiment_summary.png", width=1600, height=900, scale=2)
 
 
 if __name__ == "__main__":
