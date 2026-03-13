@@ -638,9 +638,9 @@ def build_notebook() -> nbf.NotebookNode:
         ),
         md(
             """
-            ### Check 4. Novelty Effect
+            ### Check 4. Effect Trajectory Over Time
 
-            To estimate the durable effect, I look at the treatment lift over enrollment week after standardizing for device mix. That strips out the composition bug and isolates whether the checkout itself keeps helping after the first week.
+            To estimate the durable effect, I look at the treatment lift over enrollment week after standardizing for device mix. That strips out the composition bug and shows whether the redesign keeps helping once the early excitement fades and the traffic mix settles down.
             """
         ),
         code(
@@ -699,7 +699,7 @@ def build_notebook() -> nbf.NotebookNode:
                 )
             )
             fig.add_hline(y=0, line_dash="dash", line_color="gray")
-            fig.update_layout(title="Novelty Decay: The Device-Adjusted Lift Fades Toward Zero", xaxis_title="Enrollment week", yaxis_title="Treatment lift (pp)")
+            fig.update_layout(title="Effect Trajectory: The Device-Adjusted Lift Is Strong Early and Weak Later", xaxis_title="Enrollment week", yaxis_title="Treatment lift (pp)")
             fig.update_yaxes(showgrid=False)
             fig.show()
             """
@@ -713,7 +713,7 @@ def build_notebook() -> nbf.NotebookNode:
                 Markdown(
                     f"This is the core behavior story. The device-adjusted lift starts at **{week1_effect:.2f} pp** in week 1, "
                     "turns negative in the middle of the run, and only recovers to a small effect by the final week "
-                    f"(**{week4_effect:.2f} pp**). That is not a stable, durable product win."
+                    f"(**{week4_effect:.2f} pp**). The important point is not a perfect novelty story; it is that the effect does not settle into a clean, durable win."
                 )
             )
             """
@@ -818,9 +818,9 @@ def build_notebook() -> nbf.NotebookNode:
 
             **Why I do not trust the early win:** The device-adjusted lift starts at **{weekly_effects.loc[weekly_effects['week'] == 'Week 1', 'adjusted_effect_pp'].iloc[0]:.2f} pp** in week 1, turns negative in the middle of the run, and only ends at **{week4_row['adjusted_effect_pp']:.2f} pp** in week 4. That pattern is much more consistent with novelty and instability than with a clean product improvement.
 
-            **Practical lens:** Even the naive topline lift (**{overall_diff * 100:.2f} pp**) comes in below the pre-test MDE of about **{mde_pp:.2f} pp**, so this was never a compelling product win on magnitude alone.
+            **Practical lens:** Even the naive topline lift (**{overall_diff * 100:.2f} pp**) is modest relative to the size of effect this test was powered to detect reliably (**~{mde_pp:.2f} pp**). This was not an obviously strong product win even before the audit concerns.
 
-            **Recommendation:** Fix the assignment bug, rerun the test for at least four weeks, and judge the redesign on the stabilized late-test effect rather than the early spike.
+            **Recommendation:** Fix the assignment bug, rerun the test for at least four weeks, and evaluate the redesign only after the effect trajectory has settled rather than relying on the early spike.
             '''
 
             display(Markdown(summary_text))
