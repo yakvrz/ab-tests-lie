@@ -45,22 +45,6 @@ To verify the notebook end-to-end in the terminal first, run:
 .venv/bin/jupyter nbconvert --to notebook --execute --inplace notebooks/analysis.ipynb
 ```
 
-## Repo contents
-
-```text
-ab-tests-lie/
-├── README.md
-├── requirements.txt
-├── data/
-│   ├── ab_test_raw.csv
-│   └── ground_truth.json
-├── notebooks/
-│   └── analysis.ipynb
-└── src/
-    ├── build_notebook.py
-    └── simulate.py
-```
-
 ## Author
 
 Koby Raz  
