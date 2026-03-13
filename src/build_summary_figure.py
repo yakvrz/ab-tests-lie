@@ -168,7 +168,7 @@ def build_figure(df: pd.DataFrame) -> go.Figure:
 
 
 def main() -> None:
-    """Write the summary figure as a standalone HTML artifact."""
+    """Write the summary figure as HTML and PNG artifacts."""
 
     project_root = Path(__file__).resolve().parents[1]
     reports_dir = project_root / "reports"
@@ -177,6 +177,7 @@ def main() -> None:
     df = load_data(project_root)
     fig = build_figure(df)
     fig.write_html(reports_dir / "experiment_summary.html", include_plotlyjs="cdn")
+    fig.write_image(reports_dir / "experiment_summary.png", width=1400, height=1100, scale=2)
 
 
 if __name__ == "__main__":

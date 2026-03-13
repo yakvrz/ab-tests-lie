@@ -14,6 +14,8 @@ Bottom line: the checkout redesign looks like a win at the topline, but the expe
 
 ## Preview
 
+![Experiment summary](reports/experiment_summary.png)
+
 A standalone summary figure is available at [reports/experiment_summary.html](/home/yakvrz/Projects/ab-tests-lie/reports/experiment_summary.html).
 
 ## Key findings
@@ -63,6 +65,7 @@ ab-tests-lie/
 │   └── analysis.ipynb
 ├── reports/
 │   └── experiment_summary.html
+│   └── experiment_summary.png
 └── src/
     ├── build_summary_figure.py
     ├── build_notebook.py
